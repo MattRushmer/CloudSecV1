@@ -5,4 +5,3 @@ azure-mgmt-keyvault>=11.0.0
 azure-mgmt-sql>=4.0.0
 rich>=13.7.0
 python-dotenv>=1.0.0
-pytest>=8.0.0

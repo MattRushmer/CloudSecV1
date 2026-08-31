@@ -61,7 +61,8 @@ and prints a pass/fail report.
 ```bash
 python -m venv .venv
 .venv\Scripts\activate      # or `source .venv/bin/activate` on macOS/Linux
-pip install -r requirements.txt
+pip install -r requirements.txt        # runtime only
+pip install -r requirements-dev.txt    # runtime + pytest, for running tests
 ```
 
 Authenticate to Azure — either run `az login`, or copy `env.example` to
