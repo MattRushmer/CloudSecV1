@@ -1,3 +1,6 @@
+from typing import Iterable
+
+from azure.core.credentials import TokenCredential
 from azure.mgmt.network import NetworkManagementClient
 
 from ..findings import Finding, Severity
@@ -36,7 +39,9 @@ class NsgOpenManagementPortsCheck(Check):
     description = "NSGs should not expose SSH/RDP to the internet"
     severity = Severity.CRITICAL
 
-    def run(self, credential, subscription_id):
+    def run(
+        self, credential: TokenCredential, subscription_id: str
+    ) -> Iterable[Finding]:
         client = NetworkManagementClient(credential, subscription_id)
         for nsg in client.network_security_groups.list_all():
             violations = [

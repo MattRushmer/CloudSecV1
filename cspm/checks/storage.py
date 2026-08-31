@@ -1,3 +1,6 @@
+from typing import Iterable
+
+from azure.core.credentials import TokenCredential
 from azure.mgmt.storage import StorageManagementClient
 
 from ..findings import Finding, Severity
@@ -9,7 +12,9 @@ class StorageHttpsOnlyCheck(Check):
     description = "Storage accounts should require HTTPS (secure transfer)"
     severity = Severity.HIGH
 
-    def run(self, credential, subscription_id):
+    def run(
+        self, credential: TokenCredential, subscription_id: str
+    ) -> Iterable[Finding]:
         client = StorageManagementClient(credential, subscription_id)
         for account in client.storage_accounts.list():
             passed = bool(account.enable_https_traffic_only)
@@ -32,7 +37,9 @@ class StoragePublicBlobAccessCheck(Check):
     description = "Storage accounts should not allow public blob access"
     severity = Severity.CRITICAL
 
-    def run(self, credential, subscription_id):
+    def run(
+        self, credential: TokenCredential, subscription_id: str
+    ) -> Iterable[Finding]:
         client = StorageManagementClient(credential, subscription_id)
         for account in client.storage_accounts.list():
             passed = not bool(account.allow_blob_public_access)

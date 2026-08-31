@@ -1,5 +1,7 @@
 import ipaddress
+from typing import Iterable
 
+from azure.core.credentials import TokenCredential
 from azure.mgmt.sql import SqlManagementClient
 
 from ..findings import Finding, Severity
@@ -19,7 +21,9 @@ class SqlServerOpenFirewallCheck(Check):
     description = "SQL servers should not allow all IP addresses through the firewall"
     severity = Severity.CRITICAL
 
-    def run(self, credential, subscription_id):
+    def run(
+        self, credential: TokenCredential, subscription_id: str
+    ) -> Iterable[Finding]:
         client = SqlManagementClient(credential, subscription_id)
         for server in client.servers.list():
             resource_group = parse_resource_group(server.id)

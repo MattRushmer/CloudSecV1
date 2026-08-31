@@ -1,3 +1,6 @@
+from typing import Iterable
+
+from azure.core.credentials import TokenCredential
 from azure.mgmt.keyvault import KeyVaultManagementClient
 
 from ..findings import Finding, Severity
@@ -9,7 +12,9 @@ class KeyVaultSoftDeleteCheck(Check):
     description = "Key Vaults should have soft delete enabled"
     severity = Severity.HIGH
 
-    def run(self, credential, subscription_id):
+    def run(
+        self, credential: TokenCredential, subscription_id: str
+    ) -> Iterable[Finding]:
         client = KeyVaultManagementClient(credential, subscription_id)
         for vault in client.vaults.list_by_subscription():
             # Azure documents that when enable_soft_delete is not explicitly
