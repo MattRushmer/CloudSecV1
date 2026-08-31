@@ -3,8 +3,32 @@ from azure.mgmt.network import NetworkManagementClient
 from ..findings import Finding, Severity
 from .base import Check
 
-RISKY_PORTS = {"22", "3389"}
+RISKY_PORTS = {22, 3389}
 OPEN_SOURCES = {"*", "0.0.0.0/0", "internet", "any"}
+
+
+def _risky_ports_in_range(port_range: str) -> set:
+    """Return the subset of RISKY_PORTS covered by a single Azure port-range string.
+
+    Azure port ranges are one of: "*" (all ports), "22" (single port), or
+    "20-30" (inclusive range) — any of these can cover a risky port without
+    literally spelling it out.
+    """
+    port_range = (port_range or "").strip()
+    if port_range == "*":
+        return set(RISKY_PORTS)
+    if "-" in port_range:
+        start_str, _, end_str = port_range.partition("-")
+        try:
+            start, end = int(start_str), int(end_str)
+        except ValueError:
+            return set()
+        return {port for port in RISKY_PORTS if start <= port <= end}
+    try:
+        port = int(port_range)
+    except ValueError:
+        return set()
+    return {port} & RISKY_PORTS
 
 
 class NsgOpenManagementPortsCheck(Check):
@@ -39,6 +63,22 @@ class NsgOpenManagementPortsCheck(Check):
     def _is_open_management_rule(rule) -> bool:
         if rule.direction != "Inbound" or rule.access != "Allow":
             return False
-        ports = {p.strip() for p in (rule.destination_port_range or "").split(",")}
-        source = (rule.source_address_prefix or "").strip().lower()
-        return bool(ports & RISKY_PORTS) and source in OPEN_SOURCES
+
+        # Azure represents ports either as a single `destination_port_range`
+        # or, for multi-value rules, as a `destination_port_ranges` list.
+        # Either (or both) may be populated depending on how the rule was
+        # created, so both must be checked.
+        port_ranges = list(rule.destination_port_ranges or [])
+        if rule.destination_port_range:
+            port_ranges.append(rule.destination_port_range)
+        risky_ports = set()
+        for port_range in port_ranges:
+            risky_ports |= _risky_ports_in_range(port_range)
+        if not risky_ports:
+            return False
+
+        # Same singular-vs-plural split applies to the source address.
+        sources = list(rule.source_address_prefixes or [])
+        if rule.source_address_prefix:
+            sources.append(rule.source_address_prefix)
+        return any(source.strip().lower() in OPEN_SOURCES for source in sources)
