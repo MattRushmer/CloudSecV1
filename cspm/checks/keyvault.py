@@ -12,7 +12,10 @@ class KeyVaultSoftDeleteCheck(Check):
     def run(self, credential, subscription_id):
         client = KeyVaultManagementClient(credential, subscription_id)
         for vault in client.vaults.list_by_subscription():
-            passed = bool(vault.properties.enable_soft_delete)
+            # Azure documents that when enable_soft_delete is not explicitly
+            # set (None), the vault defaults to soft delete ENABLED -- so
+            # only an explicit False means it's actually disabled.
+            passed = vault.properties.enable_soft_delete is not False
             yield Finding(
                 check_id=self.check_id,
                 resource_id=vault.id,

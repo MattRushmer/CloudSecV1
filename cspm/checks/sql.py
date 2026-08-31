@@ -1,8 +1,17 @@
+import ipaddress
+
 from azure.mgmt.sql import SqlManagementClient
 
 from ..findings import Finding, Severity
 from ..utils import parse_resource_group
 from .base import Check
+
+# Flag a firewall rule as "allows all IPs" if it covers this many addresses
+# or more, not just the exact 0.0.0.0-255.255.255.255 pair -- a range
+# nudged by a few addresses (e.g. 0.0.0.1-255.255.255.255) is effectively
+# just as open.
+_IPV4_ADDRESS_SPACE = 2**32
+_NEAR_ALL_IPS_THRESHOLD = _IPV4_ADDRESS_SPACE - 1024
 
 
 class SqlServerOpenFirewallCheck(Check):
@@ -33,7 +42,12 @@ class SqlServerOpenFirewallCheck(Check):
 
     @staticmethod
     def _allows_all_ips(rule) -> bool:
-        return (
-            rule.start_ip_address == "0.0.0.0"
-            and rule.end_ip_address == "255.255.255.255"
-        )
+        try:
+            start = ipaddress.IPv4Address(rule.start_ip_address)
+            end = ipaddress.IPv4Address(rule.end_ip_address)
+        except (ValueError, TypeError):
+            return False
+        if end < start:
+            return False
+        span = int(end) - int(start) + 1
+        return span >= _NEAR_ALL_IPS_THRESHOLD
