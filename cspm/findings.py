@@ -17,3 +17,9 @@ class Finding:
     severity: Severity
     passed: bool
     message: str
+
+
+@dataclass(frozen=True)
+class CheckError:
+    check_id: str
+    message: str

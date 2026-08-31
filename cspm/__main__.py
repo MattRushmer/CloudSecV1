@@ -27,12 +27,17 @@ def main() -> int:
     subscription_id = args.subscription_id or get_subscription_id()
     credential = get_credential()
 
-    findings = run_scan(credential, subscription_id)
-    print_report(findings)
+    findings, errors = run_scan(credential, subscription_id)
+    print_report(findings, errors)
 
     if args.json_out:
-        export_json(findings, args.json_out)
+        export_json(findings, args.json_out, errors)
 
+    # A check that errored out never scanned its resources, so the scan is
+    # incomplete — always treat that as a failure, even without
+    # --fail-on-finding, rather than reporting a false "all clear".
+    if errors:
+        return 1
     if args.fail_on_finding and any(not finding.passed for finding in findings):
         return 1
     return 0
