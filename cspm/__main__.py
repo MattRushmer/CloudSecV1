@@ -24,14 +24,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    subscription_id = args.subscription_id or get_subscription_id()
+    try:
+        subscription_id = args.subscription_id or get_subscription_id()
+    except RuntimeError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     credential = get_credential()
 
     findings, errors = run_scan(credential, subscription_id)
     print_report(findings, errors)
 
     if args.json_out:
-        export_json(findings, args.json_out, errors)
+        try:
+            export_json(findings, args.json_out, errors)
+        except OSError as exc:
+            print(f"error: could not write {args.json_out}: {exc}", file=sys.stderr)
+            return 1
 
     # A check that errored out never scanned its resources, so the scan is
     # incomplete — always treat that as a failure, even without

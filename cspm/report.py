@@ -7,13 +7,12 @@ from rich.table import Table
 
 from .findings import CheckError, Finding
 
-console = Console()
-
 
 def print_report(
     findings: List[Finding], errors: Optional[List[CheckError]] = None
 ) -> None:
     errors = errors or []
+    console = Console()
 
     table = Table(title="Azure CSPM Scan Results")
     table.add_column("Check")
@@ -65,4 +64,4 @@ def export_json(
             for error in (errors or [])
         ],
     }
-    Path(path).write_text(json.dumps(data, indent=2))
+    Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8")
